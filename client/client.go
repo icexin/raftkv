@@ -30,7 +30,7 @@ func NewClient(addrs []string, log log15.Logger) *Client {
 	return cli
 }
 
-func (c *Client) connect(addr string, timeout time.Duration) (*rpc.Client, error) {
+func Connect(addr string, timeout time.Duration) (*rpc.Client, error) {
 	conn, err := net.DialTimeout("tcp", addr, timeout)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func (c *Client) connect(addr string, timeout time.Duration) (*rpc.Client, error
 func (c *Client) lookup() error {
 	for {
 		addr := c.addrs[rand.Intn(len(c.addrs))]
-		cli, err := c.connect(addr, time.Second)
+		cli, err := Connect(addr, time.Second)
 		if err == nil {
 			c.cli = cli
 			return nil

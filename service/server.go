@@ -4,9 +4,11 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/raft"
+	"github.com/icexin/raftkv/client"
 	"github.com/icexin/raftkv/config"
 	"github.com/icexin/raftkv/proto"
 )
@@ -17,11 +19,15 @@ type Server struct {
 	fsm  *FSM
 	kvs  *KVS
 	mux  *proto.Mux
+
+	mutex sync.Mutex // protect conns
+	conns map[string]*rpc.Client
 }
 
 func NewServer(cfg *config.Config) (*Server, error) {
 	server := &Server{
-		cfg: cfg,
+		cfg:   cfg,
+		conns: make(map[string]*rpc.Client),
 	}
 
 	// setup listener
@@ -75,8 +81,48 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	return server, nil
 }
 
-func (s *Server) forward(method string, req, rep interface{}) (bool, error) {
-	return false, nil
+func (s *Server) forward(method string, req, rep interface{}) (done bool, err error) {
+	if s.raft.State() == raft.Leader {
+		return false, nil
+	}
+
+	done = true
+
+	leader := s.raft.Leader()
+	if leader == "" {
+		err = proto.ErrNoLeader
+		return
+	}
+
+	s.mutex.Lock()
+	cli, ok := s.conns[leader]
+	s.mutex.Unlock()
+	if !ok {
+		// FIXME connection timeout hard code
+		cli, err = raftkv.Connect(leader, time.Second*3)
+		if err != nil {
+			return
+		}
+		// cache connection
+		s.mutex.Lock()
+		s.conns[leader] = cli
+		s.mutex.Unlock()
+	}
+
+	err = cli.Call(method, req, rep)
+	if err != nil {
+		// if is ServerError, do not close, otherwise close connection
+		if _, ok := err.(rpc.ServerError); ok {
+			return
+		}
+		cli.Close()
+		s.mutex.Lock()
+		delete(s.conns, leader)
+		s.mutex.Unlock()
+		return
+	}
+
+	return
 }
 
 func (s *Server) Serve() error {

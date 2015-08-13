@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"errors"
 	"io"
 
 	"github.com/soheilhy/cmux"
@@ -10,6 +11,10 @@ import (
 const (
 	RaftProto = 0
 	RpcProto  = 1
+)
+
+var (
+	ErrNoLeader = errors.New("no leader")
 )
 
 var (
