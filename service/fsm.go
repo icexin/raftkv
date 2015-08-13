@@ -24,13 +24,7 @@ type FSM struct {
 }
 
 func NewFSM(cfg *config.DB) (*FSM, error) {
-	// Create a temporary path for the state store
-	tmpPath, err := ioutil.TempDir(cfg.Dir, "state")
-	if err != nil {
-		return nil, err
-	}
-
-	db, err := leveldb.OpenFile(tmpPath, nil)
+	db, err := leveldb.OpenFile(cfg.Dir, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -60,19 +54,21 @@ func (f *FSM) Restore(r io.ReadCloser) error {
 	if err != nil {
 		return err
 	}
-	// Create a temporary path for the state store
-	tmpPath, err := ioutil.TempDir(f.cfg.Dir, "state")
+
+	oldname := f.cfg.Dir + ".old"
+	err = os.Rename(f.cfg.Dir, oldname)
 	if err != nil {
 		return err
 	}
+	defer os.RemoveAll(oldname)
 
 	tr := tar.NewReader(zr)
-	err = Untar(tmpPath, tr)
+	err = Untar(f.cfg.Dir, tr)
 	if err != nil {
 		return err
 	}
 
-	db, err := leveldb.OpenFile(tmpPath, nil)
+	db, err := leveldb.OpenFile(f.cfg.Dir, nil)
 	if err != nil {
 		return err
 	}
