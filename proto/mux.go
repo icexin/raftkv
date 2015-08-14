@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"net"
@@ -28,6 +29,7 @@ func (l *listener) Accept() (net.Conn, error) {
 type Mux struct {
 	m   map[byte]chan net.Conn
 	l   net.Listener
+	dl  chan net.Conn // default listener
 	log log15.Logger
 }
 
@@ -49,6 +51,16 @@ func NewMux(l net.Listener, log log15.Logger) *Mux {
 func (m *Mux) Handle(proto byte) net.Listener {
 	ch := make(chan net.Conn)
 	m.m[proto] = ch
+	return &listener{
+		Listener: m.l,
+		ch:       ch,
+	}
+}
+
+// Default will not comsume first byte
+func (m *Mux) HandleDefault() net.Listener {
+	ch := make(chan net.Conn)
+	m.dl = ch
 	return &listener{
 		Listener: m.l,
 		ch:       ch,
@@ -87,10 +99,33 @@ func (m *Mux) Serve() error {
 			continue
 		}
 
-		// none matched, close connection
+		// none matched, try default or close connection
+		if m.dl != nil {
+			go func() {
+				m.dl <- newCombineConn(b[:], conn)
+			}()
+			continue
+		}
 		m.log.Debug("nothing matched", "proto", proto)
 		conn.Close()
 	}
 
 	return nil
+}
+
+type combineConn struct {
+	net.Conn
+	r io.Reader
+}
+
+func newCombineConn(b []byte, conn net.Conn) *combineConn {
+	r := io.MultiReader(bytes.NewReader(b), conn)
+	return &combineConn{
+		Conn: conn,
+		r:    r,
+	}
+}
+
+func (c *combineConn) Read(b []byte) (int, error) {
+	return c.r.Read(b)
 }

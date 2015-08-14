@@ -40,6 +40,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	mux := proto.NewMux(l, nil)
 	raftl := mux.Handle(proto.RaftProto)
 	rpcl := mux.Handle(proto.RpcProto)
+	redisl := mux.HandleDefault()
 
 	// setup rpc server
 	kvs := NewKVS(server)
@@ -48,6 +49,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, err
 	}
 	go rpc.Accept(rpcl)
+	// support redis protocol
+	go proto.ServeRedis(redisl)
 
 	// setup raft transporter
 	advertise, err := net.ResolveTCPAddr("tcp", cfg.Raft.Advertise)
