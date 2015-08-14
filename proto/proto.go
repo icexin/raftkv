@@ -24,8 +24,10 @@ var (
 type Action int
 
 const (
-	Read Action = iota
-	Write
+	OpPing Action = iota
+	OpRead
+	OpWrite
+	OpDelete
 )
 
 type Request struct {

@@ -16,6 +16,7 @@ import (
 
 var (
 	errBadMethod = errors.New("bad method")
+	errBadAction = errors.New("bad action")
 )
 
 type FSM struct {
@@ -36,7 +37,19 @@ func NewFSM(cfg *config.DB) (*FSM, error) {
 }
 
 func (f *FSM) Apply(l *raft.Log) interface{} {
-	return f.write(l.Data)
+	req := new(proto.Request)
+	err := proto.Unmarshal(l.Data, req)
+	if err != nil {
+		return err
+	}
+	switch req.Action {
+	case proto.OpWrite:
+		return f.Put(req.Key, req.Data, nil)
+	case proto.OpDelete:
+		return f.Delete(req.Key, nil)
+	default:
+		return errBadAction
+	}
 }
 
 func (f *FSM) Snapshot() (raft.FSMSnapshot, error) {
@@ -75,18 +88,6 @@ func (f *FSM) Restore(r io.ReadCloser) error {
 
 	f.DB = db
 	return nil
-}
-
-func (f *FSM) write(cmd []byte) error {
-	req := new(proto.Request)
-	err := proto.Unmarshal(cmd, req)
-	if err != nil {
-		return err
-	}
-	if req.Action != proto.Write {
-		return errBadMethod
-	}
-	return f.Put(req.Key, req.Data, nil)
 }
 
 // fsmSnapshot implement FSMSnapshot interface

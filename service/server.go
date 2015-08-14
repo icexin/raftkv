@@ -43,7 +43,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 
 	// setup rpc server
 	kvs := NewKVS(server)
-	err = rpc.RegisterName("KVS", kvs)
+	err = rpc.RegisterName("KV", kvs)
 	if err != nil {
 		return nil, err
 	}

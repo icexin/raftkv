@@ -59,7 +59,7 @@ func (c *Client) lookup() error {
 
 func (c *Client) ping() {
 	for {
-		err := c.cli.Call("KVS.Ping", new(proto.Request), new(proto.Reply))
+		err := c.cli.Call("KV.Ping", new(proto.Request), new(proto.Reply))
 		if err != nil {
 			c.cli.Close()
 			c.lookup()
@@ -70,11 +70,11 @@ func (c *Client) ping() {
 
 func (c *Client) Read(key []byte) ([]byte, error) {
 	req := &proto.Request{
-		Action: proto.Read,
+		Action: proto.OpRead,
 		Key:    key,
 	}
 	rep := new(proto.Reply)
-	err := c.cli.Call("KVS.Read", req, rep)
+	err := c.cli.Call("KV.Read", req, rep)
 	if err != nil {
 		return nil, err
 	}
@@ -83,12 +83,21 @@ func (c *Client) Read(key []byte) ([]byte, error) {
 
 func (c *Client) Write(key, value []byte) error {
 	req := &proto.Request{
-		Action: proto.Write,
+		Action: proto.OpWrite,
 		Key:    key,
 		Data:   value,
 	}
 	rep := new(proto.Reply)
-	return c.cli.Call("KVS.Write", req, rep)
+	return c.cli.Call("KV.Apply", req, rep)
+}
+
+func (c *Client) Delete(key []byte) error {
+	req := &proto.Request{
+		Action: proto.OpDelete,
+		Key:    key,
+	}
+	rep := new(proto.Reply)
+	return c.cli.Call("KV.Apply", req, rep)
 }
 
 func (c *Client) Close() error {
