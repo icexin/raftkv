@@ -78,8 +78,14 @@ func NewRaft(cfg *config.Raft, fsm raft.FSM, trans raft.Transport) (*raft.Raft, 
 	peerStore := raft.NewJSONPeers(cfg.DataDir, trans)
 
 	raftConfig := raft.DefaultConfig()
-	raftConfig.SnapshotInterval = time.Second * 10
-	raftConfig.EnableSingleNode = true
+	raftConfig.SnapshotInterval = time.Duration(cfg.SnapshotInterval)
+	raftConfig.SnapshotThreshold = cfg.SnapshotThreshold
+	raftConfig.EnableSingleNode = cfg.EnableSingleNode
+
+	err = raft.ValidateConfig(raftConfig)
+	if err != nil {
+		return nil, err
+	}
 	return raft.NewRaft(
 		raftConfig,
 		fsm,
