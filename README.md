@@ -3,7 +3,7 @@ raftkv
 
 # Features
 
-* High avaiable using [raft]()
+* High avaiable using [raft](http://raftconsensus.github.io/)
 * Redis protocol compatible
 
 # Install
