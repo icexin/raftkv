@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/raft"
-	"github.com/icexin/raftkv/client"
 	"github.com/icexin/raftkv/config"
 	"github.com/icexin/raftkv/proto"
 	"github.com/soheilhy/cmux"
@@ -41,7 +40,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// setup mux
 	mux := proto.NewMux(l, nil)
 	raftl := mux.Handle(proto.RaftProto)
-	rpcl := mux.Handle(proto.RpcProto)
+	msgpackl := mux.Handle(proto.RpcProto)
 	httpl := mux.HandleThird(cmux.HTTP1())
 	redisl := mux.HandleThird(cmux.Any())
 
@@ -54,7 +53,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	go rpc.Accept(rpcl)
+	// support msgpack rpc protocol
+	go proto.ServeMsgpack(msgpackl)
 	// support redis protocol
 	go proto.ServeRedis(redisl)
 
@@ -108,7 +108,7 @@ func (s *Server) forward(method string, req, rep interface{}) (done bool, err er
 	s.mutex.Unlock()
 	if !ok {
 		// FIXME connection timeout hard code
-		cli, err = raftkv.Connect(leader, time.Second*3)
+		cli, err = proto.DialMsgpack(leader, time.Second*3)
 		if err != nil {
 			return
 		}

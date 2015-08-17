@@ -2,7 +2,6 @@ package raftkv
 
 import (
 	"math/rand"
-	"net"
 	"net/rpc"
 	"time"
 
@@ -30,23 +29,10 @@ func NewClient(addrs []string, log log15.Logger) *Client {
 	return cli
 }
 
-func Connect(addr string, timeout time.Duration) (*rpc.Client, error) {
-	conn, err := net.DialTimeout("tcp", addr, timeout)
-	if err != nil {
-		return nil, err
-	}
-	_, err = conn.Write([]byte{proto.RpcProto})
-	if err != nil {
-		conn.Close()
-		return nil, err
-	}
-	return rpc.NewClient(conn), nil
-}
-
 func (c *Client) lookup() error {
 	for {
 		addr := c.addrs[rand.Intn(len(c.addrs))]
-		cli, err := Connect(addr, time.Second)
+		cli, err := proto.DialMsgpack(addr, time.Second)
 		if err == nil {
 			c.cli = cli
 			return nil
