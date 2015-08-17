@@ -1,0 +1,14 @@
+[server]
+Listen = ":10000"
+
+[raft]
+Advertise = "127.0.0.1:10000"
+DataDir = "raft"
+
+# config for raft service
+SnapshotInterval = "3s"
+SnapshotThreshold = 10000
+EnableSingleNode = true
+
+[db]
+Dir = "db"
