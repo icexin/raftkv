@@ -32,7 +32,7 @@ func (s *KVS) Read(req *proto.Request, rep *proto.Reply) error {
 
 // TODO forward
 func (s *KVS) Apply(req *proto.Request, rep *proto.Reply) error {
-	if done, err := s.serv.forward("KVS.Read", req, rep); done {
+	if done, err := s.serv.forward("KVS.Apply", req, rep); done {
 		return err
 	}
 
