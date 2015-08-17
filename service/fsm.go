@@ -68,6 +68,11 @@ func (f *FSM) Restore(r io.ReadCloser) error {
 		return err
 	}
 
+	err = f.DB.Close()
+	if err != nil {
+		return err
+	}
+
 	oldname := f.cfg.Dir + ".old"
 	err = os.Rename(f.cfg.Dir, oldname)
 	if err != nil {
@@ -95,7 +100,7 @@ type fsmSnapshot struct {
 	snapshot *leveldb.Snapshot
 }
 
-// At first, walk all kvs, write temp leveldb.
+// First, walk all kvs, write temp leveldb.
 // Second, make tar.gz for temp leveldb dir
 func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {
 	// Create a temporary path for the state store
