@@ -10,7 +10,7 @@ raftkv
 
 `go get github.com/icexin/raftkv`
 
-# Geting start
+# Getting started
 
 Start server on port 10000
 
