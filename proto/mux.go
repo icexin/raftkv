@@ -6,6 +6,8 @@ import (
 	"io"
 	"net"
 
+	"github.com/soheilhy/cmux"
+
 	"gopkg.in/inconshreveable/log15.v2"
 )
 
@@ -27,21 +29,34 @@ func (l *listener) Accept() (net.Conn, error) {
 }
 
 type Mux struct {
-	m   map[byte]chan net.Conn
-	l   net.Listener
-	dl  chan net.Conn // default listener
-	log log15.Logger
+	m      map[byte]chan net.Conn // protocol map
+	cmuxch chan net.Conn          // cmux connection channel
+	cmux   cmux.CMux              // cmux Handler
+	l      net.Listener           // underlaying listener
+	log    log15.Logger
 }
 
 func NewMux(l net.Listener, log log15.Logger) *Mux {
 	if log == nil {
 		log = log15.Root()
 	}
-	return &Mux{
-		m:   make(map[byte]chan net.Conn),
-		l:   l,
-		log: log,
+	cmuxch := make(chan net.Conn)
+	cmux := cmux.New(&listener{
+		Listener: l,
+		ch:       cmuxch,
+	})
+
+	go cmux.Serve()
+
+	m := &Mux{
+		m:      make(map[byte]chan net.Conn),
+		cmuxch: cmuxch,
+		cmux:   cmux,
+		l:      l,
+		log:    log,
 	}
+
+	return m
 }
 
 // Handle register a Listener to Mux
@@ -58,13 +73,8 @@ func (m *Mux) Handle(proto byte) net.Listener {
 }
 
 // Default will not comsume first byte
-func (m *Mux) HandleDefault() net.Listener {
-	ch := make(chan net.Conn)
-	m.dl = ch
-	return &listener{
-		Listener: m.l,
-		ch:       ch,
-	}
+func (m *Mux) HandleThird(matcher ...cmux.Matcher) net.Listener {
+	return m.cmux.Match(matcher...)
 }
 
 func (m *Mux) Serve() error {
@@ -100,9 +110,9 @@ func (m *Mux) Serve() error {
 		}
 
 		// none matched, try default or close connection
-		if m.dl != nil {
+		if m.cmuxch != nil {
 			go func() {
-				m.dl <- newCombineConn(b[:], conn)
+				m.cmuxch <- newCombineConn(b[:], conn)
 			}()
 			continue
 		}

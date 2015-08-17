@@ -2,6 +2,7 @@ package service
 
 import (
 	"net"
+	"net/http"
 	"net/rpc"
 	"os"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"github.com/icexin/raftkv/client"
 	"github.com/icexin/raftkv/config"
 	"github.com/icexin/raftkv/proto"
+	"github.com/soheilhy/cmux"
 )
 
 type Server struct {
@@ -40,7 +42,11 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	mux := proto.NewMux(l, nil)
 	raftl := mux.Handle(proto.RaftProto)
 	rpcl := mux.Handle(proto.RpcProto)
-	redisl := mux.HandleDefault()
+	httpl := mux.HandleThird(cmux.HTTP1())
+	redisl := mux.HandleThird(cmux.Any())
+
+	// setup http server
+	go http.Serve(httpl, nil)
 
 	// setup rpc server
 	kvs := NewKVS(server)

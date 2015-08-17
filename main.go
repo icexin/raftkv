@@ -4,6 +4,9 @@ import (
 	"flag"
 	"log"
 
+	_ "expvar"
+	_ "net/http/pprof"
+
 	"github.com/BurntSushi/toml"
 	"github.com/icexin/raftkv/config"
 	"github.com/icexin/raftkv/service"
