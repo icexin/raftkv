@@ -39,7 +39,7 @@ func TestUntar(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(baseDir)
-	err = Untar(baseDir, tar.NewReader(buf))
+	err = Untar(baseDir, buf)
 	if err != nil {
 		t.Fatal(err)
 	}

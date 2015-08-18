@@ -1,7 +1,6 @@
 package service
 
 import (
-	"archive/tar"
 	"compress/gzip"
 	"errors"
 	"io"
@@ -80,8 +79,7 @@ func (f *FSM) Restore(r io.ReadCloser) error {
 	}
 	defer os.RemoveAll(oldname)
 
-	tr := tar.NewReader(zr)
-	err = Untar(f.cfg.Dir, tr)
+	err = Untar(f.cfg.Dir, zr)
 	if err != nil {
 		return err
 	}

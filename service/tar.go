@@ -42,9 +42,10 @@ func Tar(base string, w io.Writer) error {
 
 }
 
-func Untar(base string, r *tar.Reader) error {
+func Untar(base string, r io.Reader) error {
+	tr := tar.NewReader(r)
 	for {
-		hdr, err := r.Next()
+		hdr, err := tr.Next()
 		if err == io.EOF {
 			return nil
 		}
@@ -66,7 +67,7 @@ func Untar(base string, r *tar.Reader) error {
 		if err != nil {
 			return err
 		}
-		_, err = io.Copy(f, r)
+		_, err = io.Copy(f, tr)
 		if err != nil {
 			f.Close()
 			return err
