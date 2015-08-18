@@ -1,4 +1,4 @@
-raftkv
+raftkv [![Build Status](https://travis-ci.org/icexin/raftkv.svg?branch=master)](https://travis-ci.org/icexin/raftkv)
 ======
 
 # Features
