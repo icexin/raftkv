@@ -15,11 +15,16 @@ import (
 )
 
 type Server struct {
-	cfg  *config.Config
-	raft *raft.Raft
-	fsm  *FSM
-	kvs  *KVS
-	mux  *proto.Mux
+	cfg *config.Config
+
+	// raft
+	raftLayer *raftLayer
+	raftTrans *raft.NetworkTransport
+	raft      *raft.Raft
+
+	fsm *FSM
+	kvs *KVS
+	mux *proto.Mux
 
 	mutex sync.Mutex // protect conns
 	conns map[string]*rpc.Client
@@ -83,6 +88,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, err
 	}
 
+	server.raftLayer = layer
+	server.raftTrans = trans
 	server.raft = raft
 	server.fsm = fsm
 	server.kvs = kvs
@@ -139,6 +146,11 @@ func (s *Server) Serve() error {
 }
 
 func (s *Server) Close() error {
+	s.raftLayer.Close()
+	s.raftTrans.Close()
+	ret := s.raft.Shutdown()
+	// wait raft shutdown
+	ret.Error()
 	s.fsm.Close()
 	return s.mux.Close()
 }
