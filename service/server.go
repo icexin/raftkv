@@ -137,3 +137,8 @@ func (s *Server) forward(method string, req, rep interface{}) (done bool, err er
 func (s *Server) Serve() error {
 	return s.mux.Serve()
 }
+
+func (s *Server) Close() error {
+	s.fsm.Close()
+	return s.mux.Close()
+}

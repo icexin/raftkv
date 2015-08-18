@@ -77,6 +77,10 @@ func (m *Mux) HandleThird(matcher ...cmux.Matcher) net.Listener {
 	return m.cmux.Match(matcher...)
 }
 
+func (m *Mux) Close() error {
+	return m.l.Close()
+}
+
 func (m *Mux) Serve() error {
 	defer func() {
 		for _, ch := range m.m {
@@ -87,8 +91,7 @@ func (m *Mux) Serve() error {
 	for {
 		conn, err := m.l.Accept()
 		if err != nil {
-			m.log.Error("accept", "error", err)
-			continue
+			return err
 		}
 
 		// read first byte
