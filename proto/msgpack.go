@@ -8,14 +8,14 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
-func ServeMsgpack(l net.Listener) error {
+func ServeMsgpack(l net.Listener, s *rpc.Server) error {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
 			return err
 		}
 		codec := codec.MsgpackSpecRpc.ServerCodec(conn, &msgpackHandle)
-		go rpc.ServeCodec(codec)
+		go s.ServeCodec(codec)
 	}
 }
 

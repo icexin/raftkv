@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/icexin/raftkv/client"
 	"github.com/icexin/raftkv/config"
 )
 
@@ -61,4 +62,34 @@ func TestServerClose(t *testing.T) {
 	go server.Serve()
 	time.Sleep(time.Second)
 	server.Close()
+}
+
+func TestReadWrite(t *testing.T) {
+	server, addr, base := newServer(t)
+	defer os.RemoveAll(base)
+	defer server.Close()
+	go server.Serve()
+	time.Sleep(2 * time.Second)
+	cli := raftkv.NewClient([]string{addr}, nil)
+	defer cli.Close()
+
+	key := []byte("key")
+	value := []byte("value")
+	err := cli.Write(key, value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v, err := cli.Read(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(v) != string(value) {
+		t.Errorf("%s %s", v, value)
+	}
+	err = cli.Delete(key)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

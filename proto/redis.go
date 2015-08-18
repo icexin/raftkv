@@ -172,13 +172,13 @@ func (c *RedisServerCodec) Close() error {
 	return c.c.Close()
 }
 
-func ServeRedis(l net.Listener) error {
+func ServeRedis(l net.Listener, s *rpc.Server) error {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
 			return err
 		}
 		codec := NewRedisServerCodec(conn)
-		go rpc.ServeCodec(codec)
+		go s.ServeCodec(codec)
 	}
 }

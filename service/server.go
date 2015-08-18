@@ -22,6 +22,8 @@ type Server struct {
 	raftTrans *raft.NetworkTransport
 	raft      *raft.Raft
 
+	rpcServer *rpc.Server
+
 	fsm *FSM
 	kvs *KVS
 	mux *proto.Mux
@@ -54,14 +56,15 @@ func NewServer(cfg *config.Config) (*Server, error) {
 
 	// setup rpc server
 	kvs := NewKVS(server)
-	err = rpc.RegisterName("KV", kvs)
+	rpcServer := rpc.NewServer()
+	err = rpcServer.RegisterName("KV", kvs)
 	if err != nil {
 		return nil, err
 	}
 	// support msgpack rpc protocol
-	go proto.ServeMsgpack(msgpackl)
+	go proto.ServeMsgpack(msgpackl, rpcServer)
 	// support redis protocol
-	go proto.ServeRedis(redisl)
+	go proto.ServeRedis(redisl, rpcServer)
 
 	// setup raft transporter
 	advertise, err := net.ResolveTCPAddr("tcp", cfg.Raft.Advertise)
@@ -91,6 +94,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	server.raftLayer = layer
 	server.raftTrans = trans
 	server.raft = raft
+	server.rpcServer = rpcServer
 	server.fsm = fsm
 	server.kvs = kvs
 	server.mux = mux
