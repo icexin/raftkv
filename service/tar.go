@@ -58,6 +58,7 @@ func Untar(base string, r io.Reader) error {
 		// as dir
 		if info.IsDir() {
 			os.MkdirAll(fullpath, 0755)
+			continue
 		}
 		dir := filepath.Dir(fullpath)
 		os.MkdirAll(dir, 0755)
